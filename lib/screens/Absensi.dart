@@ -563,6 +563,7 @@ class _AbsensiState extends State<Absensi> {
         ),
       ),
     ));
+  }
 }
 
 class _NavItem {

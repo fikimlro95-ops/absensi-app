@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'dart:convert';
+import 'package:shared_preferences/shared_preferences.dart';
 
 // Model untuk Siswa
 class Siswa {
@@ -14,6 +16,20 @@ class Siswa {
     required this.nama,
     required this.nis,
   });
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'kelasId': kelasId,
+        'nama': nama,
+        'nis': nis,
+      };
+
+  factory Siswa.fromJson(Map<String, dynamic> json) => Siswa(
+        id: json['id'],
+        kelasId: json['kelasId'],
+        nama: json['nama'],
+        nis: json['nis'],
+      );
 }
 
 // Model untuk Riwayat Absensi
@@ -34,6 +50,20 @@ class AbsensiRecord {
   int get countHadir => statusKehadiran.values.where((v) => v == 'Hadir').length;
   int get countAlfa => statusKehadiran.values.where((v) => v == 'Alfa').length;
   int get countIzin => statusKehadiran.values.where((v) => v == 'Izin' || v == 'Sakit').length;
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'kelasId': kelasId,
+        'tanggal': tanggal.toIso8601String(),
+        'statusKehadiran': statusKehadiran,
+      };
+
+  factory AbsensiRecord.fromJson(Map<String, dynamic> json) => AbsensiRecord(
+        id: json['id'],
+        kelasId: json['kelasId'],
+        tanggal: DateTime.parse(json['tanggal']),
+        statusKehadiran: Map<String, String>.from(json['statusKehadiran']),
+      );
 }
 
 // Model untuk Sekolah
@@ -47,6 +77,18 @@ class Sekolah {
     required this.nama,
     this.imageUrl,
   });
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'nama': nama,
+        'imageUrl': imageUrl,
+      };
+
+  factory Sekolah.fromJson(Map<String, dynamic> json) => Sekolah(
+        id: json['id'],
+        nama: json['nama'],
+        imageUrl: json['imageUrl'],
+      );
 }
 
 // Model untuk Kelas
@@ -64,6 +106,22 @@ class Kelas {
     required this.deskripsi,
     this.jumlahSiswa = 0,
   });
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'sekolahId': sekolahId,
+        'nama': nama,
+        'deskripsi': deskripsi,
+        'jumlahSiswa': jumlahSiswa,
+      };
+
+  factory Kelas.fromJson(Map<String, dynamic> json) => Kelas(
+        id: json['id'],
+        sekolahId: json['sekolahId'],
+        nama: json['nama'],
+        deskripsi: json['deskripsi'],
+        jumlahSiswa: json['jumlahSiswa'] ?? 0,
+      );
 }
 
 // Global State Management
@@ -83,6 +141,53 @@ class AppData extends ChangeNotifier {
   List<Kelas> get kelasList => _kelasList;
   List<Siswa> get siswaList => _siswaList;
   List<AbsensiRecord> get absensiList => _absensiList;
+
+  bool _isLoaded = false;
+  bool get isLoaded => _isLoaded;
+
+  // ─── LOCAL STORAGE LOGIC ───
+  Future<void> loadData() async {
+    final prefs = await SharedPreferences.getInstance();
+    
+    final sekolahStr = prefs.getString('sekolahList');
+    if (sekolahStr != null) {
+      final List decoded = json.decode(sekolahStr);
+      _sekolahList.clear();
+      _sekolahList.addAll(decoded.map((e) => Sekolah.fromJson(e)).toList());
+    }
+
+    final kelasStr = prefs.getString('kelasList');
+    if (kelasStr != null) {
+      final List decoded = json.decode(kelasStr);
+      _kelasList.clear();
+      _kelasList.addAll(decoded.map((e) => Kelas.fromJson(e)).toList());
+    }
+
+    final siswaStr = prefs.getString('siswaList');
+    if (siswaStr != null) {
+      final List decoded = json.decode(siswaStr);
+      _siswaList.clear();
+      _siswaList.addAll(decoded.map((e) => Siswa.fromJson(e)).toList());
+    }
+
+    final absensiStr = prefs.getString('absensiList');
+    if (absensiStr != null) {
+      final List decoded = json.decode(absensiStr);
+      _absensiList.clear();
+      _absensiList.addAll(decoded.map((e) => AbsensiRecord.fromJson(e)).toList());
+    }
+
+    _isLoaded = true;
+    notifyListeners();
+  }
+
+  Future<void> saveData() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('sekolahList', json.encode(_sekolahList.map((e) => e.toJson()).toList()));
+    await prefs.setString('kelasList', json.encode(_kelasList.map((e) => e.toJson()).toList()));
+    await prefs.setString('siswaList', json.encode(_siswaList.map((e) => e.toJson()).toList()));
+    await prefs.setString('absensiList', json.encode(_absensiList.map((e) => e.toJson()).toList()));
+  }
 
   // Mengambil siswa berdasarkan kelas
   List<Siswa> getSiswaByKelas(String kelasId) {
@@ -129,6 +234,7 @@ class AppData extends ChangeNotifier {
       imageUrl: (imageUrl != null && imageUrl.trim().isNotEmpty) ? imageUrl.trim() : null,
     );
     _sekolahList.add(newSekolah);
+    saveData();
     notifyListeners();
   }
 
@@ -142,6 +248,7 @@ class AppData extends ChangeNotifier {
       jumlahSiswa: 0, // Default 0
     );
     _kelasList.add(newKelas);
+    saveData();
     notifyListeners();
   }
 
@@ -151,6 +258,7 @@ class AppData extends ChangeNotifier {
     _sekolahList.removeWhere((s) => s.id == id);
     // Hapus juga semua kelas yang terkait dengan sekolah ini
     _kelasList.removeWhere((k) => k.sekolahId == id);
+    saveData();
     notifyListeners();
   }
 
@@ -159,6 +267,7 @@ class AppData extends ChangeNotifier {
     _kelasList.removeWhere((k) => k.id == id);
     _siswaList.removeWhere((s) => s.kelasId == id); // hapus siswa di kelas ini
     _absensiList.removeWhere((a) => a.kelasId == id); // hapus absensi di kelas ini
+    saveData();
     notifyListeners();
   }
 
@@ -183,6 +292,7 @@ class AppData extends ChangeNotifier {
         jumlahSiswa: k.jumlahSiswa + 1,
       );
     }
+    saveData();
     notifyListeners();
   }
 
@@ -203,6 +313,7 @@ class AppData extends ChangeNotifier {
         jumlahSiswa: k.jumlahSiswa - 1,
       );
     }
+    saveData();
     notifyListeners();
   }
 
@@ -215,6 +326,7 @@ class AppData extends ChangeNotifier {
       statusKehadiran: statusKehadiran,
     );
     _absensiList.add(record);
+    saveData();
     notifyListeners();
   }
 }
