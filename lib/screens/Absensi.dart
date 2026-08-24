@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:intl/intl.dart';
+import 'dart:io';
+import '../data/app_data.dart';
 
 class Absensi extends StatefulWidget {
   const Absensi({super.key});
@@ -11,13 +14,15 @@ class Absensi extends StatefulWidget {
 class _AbsensiState extends State<Absensi> {
   int _selectedIndex = 1; // Tab "Absensi" aktif
 
-  // ─── Data Kosong (Akan diisi nanti) ──────────────────────────
-  final List<Map<String, dynamic>> listAbsensi = [];
-
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFF111111),
+    return ListenableBuilder(
+      listenable: AppData(),
+      builder: (context, _) {
+        final listAbsensi = AppData().getSortedAbsensi();
+
+        return Scaffold(
+          backgroundColor: const Color(0xFF111111),
       body: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -53,6 +58,9 @@ class _AbsensiState extends State<Absensi> {
               ),
             ),
 
+            // ─── GRAFIK BULAN INI ───
+            _buildBulanIniChart(listAbsensi),
+
             // ─── DAFTAR KARTU ABSENSI ───
             Expanded(
               child: listAbsensi.isEmpty
@@ -67,7 +75,7 @@ class _AbsensiState extends State<Absensi> {
                           ),
                           const SizedBox(height: 16),
                           Text(
-                            'Belum ada absensi.\nSilakan buat kelas dan absen terlebih dahulu.',
+                            'Belum ada absensi bulan ini.\nSilakan buat kelas dan absen terlebih dahulu.',
                             textAlign: TextAlign.center,
                             style: TextStyle(
                               color: Colors.white.withOpacity(0.5),
@@ -78,12 +86,17 @@ class _AbsensiState extends State<Absensi> {
                       ),
                     )
                   : ListView.builder(
-                padding: const EdgeInsets.all(20),
-                itemCount: listAbsensi.length,
-                itemBuilder: (context, index) {
-                  return _buildAbsensiCard(listAbsensi[index]);
-                },
-              ),
+                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                      itemCount: listAbsensi.length,
+                      itemBuilder: (context, index) {
+                        return GestureDetector(
+                          onTap: () {
+                            Navigator.pushNamed(context, '/DetailRiwayatAbsensi', arguments: listAbsensi[index]);
+                          },
+                          child: _buildAbsensiCard(listAbsensi[index]),
+                        );
+                      },
+                    ),
             ),
           ],
         ),
@@ -99,100 +112,266 @@ class _AbsensiState extends State<Absensi> {
       ),
       bottomNavigationBar: _buildBottomNav(),
     );
+      },
+    );
   }
 
-  // ─── MODAL TAMBAH ABSENSI (PLACEHOLDER) ────────────────────────────────────
+  // ─── MODAL TAMBAH ABSENSI ────────────────────────────────────────────────
   void _showAddAbsensiModal(BuildContext context) {
+    String? selectedKelasId;
+    DateTime selectedDate = DateTime.now();
+
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
       builder: (context) {
-        return Padding(
-          padding: EdgeInsets.only(
-            bottom: MediaQuery.of(context).viewInsets.bottom,
-          ),
-          child: Container(
-            decoration: const BoxDecoration(
-              color: Color(0xFF111111),
-              borderRadius: BorderRadius.only(
-                topLeft: Radius.circular(28),
-                topRight: Radius.circular(28),
+        return StatefulBuilder(
+          builder: (context, setStateModal) {
+            final kelasku = AppData().kelasList;
+
+            return Padding(
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.of(context).viewInsets.bottom,
               ),
-              border: Border(
-                top: BorderSide(color: Color(0xFF1C3393), width: 2),
-              ),
-            ),
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Tambah Absensi Baru',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
+              child: Container(
+                decoration: const BoxDecoration(
+                  color: Color(0xFF111111),
+                  borderRadius: BorderRadius.only(
+                    topLeft: Radius.circular(28),
+                    topRight: Radius.circular(28),
+                  ),
+                  border: Border(
+                    top: BorderSide(color: Color(0xFF1C3393), width: 2),
                   ),
                 ),
-                const SizedBox(height: 24),
-                // Informasi Placeholder
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.blueAccent.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.blueAccent.withOpacity(0.3)),
-                  ),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.info_outline, color: Colors.blueAccent),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Text(
-                          'Form pembuatan absensi akan ditambahkan di sini pada tahap selanjutnya. Kita perlu menyiapkan logika pemilihan Kelas dan Tanggal terlebih dahulu.',
-                          style: TextStyle(
-                            color: Colors.white.withOpacity(0.8),
-                            fontSize: 13,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 32),
-                SizedBox(
-                  width: double.infinity,
-                  height: 50,
-                  child: ElevatedButton(
-                    onPressed: () => Navigator.pop(context),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF1C3393),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                    child: const Text(
-                      'Tutup Sementara',
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Pilih Kelas & Tanggal',
                       style: TextStyle(
                         color: Colors.white,
-                        fontSize: 16,
+                        fontSize: 20,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-                  ),
+                    const SizedBox(height: 24),
+                    // Dropdown Kelas
+                    DropdownButtonFormField<String>(
+                      decoration: InputDecoration(
+                        labelText: 'Pilih Kelas',
+                        labelStyle: TextStyle(color: Colors.white.withOpacity(0.5)),
+                        enabledBorder: OutlineInputBorder(
+                          borderSide: BorderSide(color: Colors.white.withOpacity(0.2)),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderSide: const BorderSide(color: Color(0xFF554DE7)),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        filled: true,
+                        fillColor: Colors.black.withOpacity(0.3),
+                      ),
+                      dropdownColor: const Color(0xFF1A1A2E),
+                      style: const TextStyle(color: Colors.white),
+                      value: selectedKelasId,
+                      items: kelasku.map((k) {
+                        return DropdownMenuItem(
+                          value: k.id,
+                          child: Text(k.nama),
+                        );
+                      }).toList(),
+                      onChanged: (val) {
+                        setStateModal(() {
+                          selectedKelasId = val;
+                        });
+                      },
+                    ),
+                    const SizedBox(height: 16),
+                    // Pilih Tanggal
+                    GestureDetector(
+                      onTap: () async {
+                        final picked = await showDatePicker(
+                          context: context,
+                          initialDate: selectedDate,
+                          firstDate: DateTime(2020),
+                          lastDate: DateTime(2100),
+                        );
+                        if (picked != null) {
+                          setStateModal(() {
+                            selectedDate = picked;
+                          });
+                        }
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                        decoration: BoxDecoration(
+                          color: Colors.black.withOpacity(0.3),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: Colors.white.withOpacity(0.2)),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              DateFormat('dd MMMM yyyy', 'id_ID').format(selectedDate),
+                              style: const TextStyle(color: Colors.white, fontSize: 16),
+                            ),
+                            const Icon(Icons.calendar_month_outlined, color: Colors.white54),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 32),
+                    // Tombol Lanjut
+                    SizedBox(
+                      width: double.infinity,
+                      height: 50,
+                      child: ElevatedButton(
+                        onPressed: () {
+                          if (selectedKelasId != null) {
+                            Navigator.pop(context);
+                            Navigator.pushNamed(context, '/FormAbsensi', arguments: {
+                              'kelasId': selectedKelasId,
+                              'tanggal': selectedDate,
+                            });
+                          } else {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Silakan pilih kelas terlebih dahulu!')),
+                            );
+                          }
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF1C3393),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        child: const Text(
+                          'Mulai Absensi',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-              ],
-            ),
-          ),
+              ),
+            );
+          },
         );
       },
     );
   }
 
+  // ─── WIDGET: GRAFIK BULAN INI ───
+  Widget _buildBulanIniChart(List<AbsensiRecord> records) {
+    // Filter hanya bulan ini
+    final now = DateTime.now();
+    final thisMonthRecords = records.where((r) => r.tanggal.month == now.month && r.tanggal.year == now.year).toList();
+
+    int totalHadir = 0;
+    int totalAlfa = 0;
+    int totalIzin = 0;
+
+    for (var r in thisMonthRecords) {
+      totalHadir += r.countHadir;
+      totalAlfa += r.countAlfa;
+      totalIzin += r.countIzin;
+    }
+
+    final total = totalHadir + totalAlfa + totalIzin;
+    final wHadir = total == 0 ? 0.0 : (totalHadir / total);
+    final wAlfa = total == 0 ? 0.0 : (totalAlfa / total);
+    final wIzin = total == 0 ? 0.0 : (totalIzin / total);
+
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1A1A2E),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: const Color(0xFF3D5AFE).withOpacity(0.3)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Statistik ${DateFormat('MMMM yyyy', 'id_ID').format(now)}',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const Icon(Icons.bar_chart, color: Color(0xFF554DE7)),
+            ],
+          ),
+          const SizedBox(height: 20),
+          // Horizontal Segmented Bar
+          ClipRRect(
+            borderRadius: BorderRadius.circular(12),
+            child: SizedBox(
+              height: 20,
+              width: double.infinity,
+              child: total == 0 
+                ? Container(color: Colors.white.withOpacity(0.1))
+                : Row(
+                    children: [
+                      if (wHadir > 0) Expanded(flex: (wHadir * 100).toInt(), child: Container(color: Colors.green)),
+                      if (wAlfa > 0) Expanded(flex: (wAlfa * 100).toInt(), child: Container(color: Colors.redAccent)),
+                      if (wIzin > 0) Expanded(flex: (wIzin * 100).toInt(), child: Container(color: Colors.orangeAccent)),
+                    ],
+                  ),
+            ),
+          ),
+          const SizedBox(height: 16),
+          // Legends
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              _buildLegend(Colors.green, 'Hadir', totalHadir),
+              _buildLegend(Colors.redAccent, 'Alfa', totalAlfa),
+              _buildLegend(Colors.orangeAccent, 'Izin/Sakit', totalIzin),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLegend(Color color, String label, int count) {
+    return Row(
+      children: [
+        Container(
+          width: 12,
+          height: 12,
+          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+        ),
+        const SizedBox(width: 6),
+        Text(
+          '$label: $count',
+          style: TextStyle(color: Colors.white.withOpacity(0.8), fontSize: 12),
+        ),
+      ],
+    );
+  }
+
   // ─── WIDGET: CARD ABSENSI ───
-  Widget _buildAbsensiCard(Map<String, dynamic> data) {
+  Widget _buildAbsensiCard(AbsensiRecord data) {
+    final namaKelas = AppData().getNamaKelas(data.kelasId);
+    final sekolahId = AppData().getSekolahIdByKelas(data.kelasId);
+    final sekolah = AppData().sekolahList.firstWhere((s) => s.id == sekolahId);
+
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
@@ -217,7 +396,7 @@ class _AbsensiState extends State<Absensi> {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Gambar / Logo Kelas
+          // Gambar / Logo Sekolah
           Container(
             width: 70,
             height: 70,
@@ -227,12 +406,20 @@ class _AbsensiState extends State<Absensi> {
               border: Border.all(
                 color: const Color(0xFF3D5AFE).withOpacity(0.3),
               ),
+              image: (sekolah.imageUrl != null && sekolah.imageUrl!.isNotEmpty)
+                  ? DecorationImage(
+                      image: FileImage(File(sekolah.imageUrl!)),
+                      fit: BoxFit.cover,
+                    )
+                  : null,
             ),
-            child: const Icon(
-              Icons.image_outlined,
-              color: Color(0xFF666688),
-              size: 32,
-            ),
+            child: (sekolah.imageUrl == null || sekolah.imageUrl!.isEmpty)
+                ? const Icon(
+                    Icons.image_outlined,
+                    color: Color(0xFF666688),
+                    size: 32,
+                  )
+                : null,
           ),
           const SizedBox(width: 16),
           // Info Teks
@@ -244,7 +431,7 @@ class _AbsensiState extends State<Absensi> {
                 Align(
                   alignment: Alignment.centerRight,
                   child: Text(
-                    data['tanggal'],
+                    DateFormat('EEEE, dd MMMM yyyy', 'id_ID').format(data.tanggal),
                     style: TextStyle(
                       color: Colors.white.withOpacity(0.7),
                       fontSize: 12,
@@ -254,7 +441,7 @@ class _AbsensiState extends State<Absensi> {
                 const SizedBox(height: 4),
                 // Nama Sekolah
                 Text(
-                  data['sekolah'],
+                  sekolah.nama,
                   style: TextStyle(
                     color: Colors.white.withOpacity(0.9),
                     fontSize: 13,
@@ -263,7 +450,7 @@ class _AbsensiState extends State<Absensi> {
                 const SizedBox(height: 2),
                 // Nama Kelas
                 Text(
-                  data['kelas'],
+                  namaKelas,
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 16,
@@ -275,9 +462,9 @@ class _AbsensiState extends State<Absensi> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    _buildIndicator(Icons.check_circle_rounded, Colors.green, '${data['hadir']} Hadir'),
-                    _buildIndicator(Icons.cancel_rounded, Colors.redAccent, '${data['alfa']} Alfa'),
-                    _buildIndicator(Icons.info_rounded, Colors.orangeAccent, '${data['izin']} Izin'),
+                    _buildIndicator(Icons.check_circle_rounded, Colors.green, '${data.countHadir} Hadir'),
+                    _buildIndicator(Icons.cancel_rounded, Colors.redAccent, '${data.countAlfa} Alfa'),
+                    _buildIndicator(Icons.info_rounded, Colors.orangeAccent, '${data.countIzin} Izin'),
                   ],
                 ),
               ],
@@ -376,7 +563,6 @@ class _AbsensiState extends State<Absensi> {
         ),
       ),
     ));
-  }
 }
 
 class _NavItem {

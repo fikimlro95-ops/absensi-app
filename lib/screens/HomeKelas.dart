@@ -208,8 +208,13 @@ class HomeKelasState extends State<HomeKelas> {
 
   // ─── CARD KELAS ──────────────────────────────────────────────────────────
   Widget _buildKelasCard(Map<String, dynamic> data) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 20),
+    return GestureDetector(
+      onTap: () {
+        // Navigasi ke halaman detail kelas (kelola siswa)
+        Navigator.pushNamed(context, '/DetailKelas', arguments: data['id']);
+      },
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 20),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(20),
         color: const Color(0xFF0A0A0A),
@@ -360,7 +365,7 @@ class HomeKelasState extends State<HomeKelas> {
           ),
         ],
       ),
-    );
+    ));
   }
 
   // ─── TOMBOL AKSI ─────────────────────────────────────────────────────────

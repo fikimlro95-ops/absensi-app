@@ -1,4 +1,40 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
+
+// Model untuk Siswa
+class Siswa {
+  final String id;
+  final String kelasId;
+  final String nama;
+  final String nis;
+
+  Siswa({
+    required this.id,
+    required this.kelasId,
+    required this.nama,
+    required this.nis,
+  });
+}
+
+// Model untuk Riwayat Absensi
+class AbsensiRecord {
+  final String id;
+  final String kelasId;
+  final DateTime tanggal;
+  // Key: id siswa, Value: status ('Hadir', 'Alfa', 'Izin', 'Sakit')
+  final Map<String, String> statusKehadiran;
+
+  AbsensiRecord({
+    required this.id,
+    required this.kelasId,
+    required this.tanggal,
+    required this.statusKehadiran,
+  });
+
+  int get countHadir => statusKehadiran.values.where((v) => v == 'Hadir').length;
+  int get countAlfa => statusKehadiran.values.where((v) => v == 'Alfa').length;
+  int get countIzin => statusKehadiran.values.where((v) => v == 'Izin' || v == 'Sakit').length;
+}
 
 // Model untuk Sekolah
 class Sekolah {
@@ -39,10 +75,42 @@ class AppData extends ChangeNotifier {
   // Daftar Data
   final List<Sekolah> _sekolahList = [];
   final List<Kelas> _kelasList = [];
+  final List<Siswa> _siswaList = [];
+  final List<AbsensiRecord> _absensiList = [];
 
   // Getter
   List<Sekolah> get sekolahList => _sekolahList;
   List<Kelas> get kelasList => _kelasList;
+  List<Siswa> get siswaList => _siswaList;
+  List<AbsensiRecord> get absensiList => _absensiList;
+
+  // Mengambil siswa berdasarkan kelas
+  List<Siswa> getSiswaByKelas(String kelasId) {
+    return _siswaList.where((s) => s.kelasId == kelasId).toList();
+  }
+
+  // Mengambil daftar absensi, diurutkan dari yang terbaru
+  List<AbsensiRecord> getSortedAbsensi() {
+    final sorted = List<AbsensiRecord>.from(_absensiList);
+    sorted.sort((a, b) => b.tanggal.compareTo(a.tanggal));
+    return sorted;
+  }
+
+  String getNamaKelas(String kelasId) {
+    try {
+      return _kelasList.firstWhere((k) => k.id == kelasId).nama;
+    } catch (e) {
+      return 'Kelas Tidak Diketahui';
+    }
+  }
+
+  String getSekolahIdByKelas(String kelasId) {
+    try {
+      return _kelasList.firstWhere((k) => k.id == kelasId).sekolahId;
+    } catch (e) {
+      return '';
+    }
+  }
 
   // Mendapatkan nama sekolah berdasarkan ID (untuk ditampilkan di card kelas)
   String getNamaSekolah(String sekolahId) {
@@ -89,6 +157,64 @@ class AppData extends ChangeNotifier {
   // Aksi Menghapus Kelas
   void deleteKelas(String id) {
     _kelasList.removeWhere((k) => k.id == id);
+    _siswaList.removeWhere((s) => s.kelasId == id); // hapus siswa di kelas ini
+    _absensiList.removeWhere((a) => a.kelasId == id); // hapus absensi di kelas ini
+    notifyListeners();
+  }
+
+  // Aksi Menambah Siswa
+  void addSiswa(String kelasId, String nama, String nis) {
+    final newSiswa = Siswa(
+      id: DateTime.now().millisecondsSinceEpoch.toString(),
+      kelasId: kelasId,
+      nama: nama,
+      nis: nis,
+    );
+    _siswaList.add(newSiswa);
+    // Update jumlahSiswa di Kelas
+    final kelasIndex = _kelasList.indexWhere((k) => k.id == kelasId);
+    if (kelasIndex != -1) {
+      final k = _kelasList[kelasIndex];
+      _kelasList[kelasIndex] = Kelas(
+        id: k.id,
+        sekolahId: k.sekolahId,
+        nama: k.nama,
+        deskripsi: k.deskripsi,
+        jumlahSiswa: k.jumlahSiswa + 1,
+      );
+    }
+    notifyListeners();
+  }
+
+  // Aksi Menghapus Siswa
+  void deleteSiswa(String id) {
+    final siswa = _siswaList.firstWhere((s) => s.id == id);
+    _siswaList.removeWhere((s) => s.id == id);
+    
+    // Kurangi jumlahSiswa di Kelas
+    final kelasIndex = _kelasList.indexWhere((k) => k.id == siswa.kelasId);
+    if (kelasIndex != -1) {
+      final k = _kelasList[kelasIndex];
+      _kelasList[kelasIndex] = Kelas(
+        id: k.id,
+        sekolahId: k.sekolahId,
+        nama: k.nama,
+        deskripsi: k.deskripsi,
+        jumlahSiswa: k.jumlahSiswa - 1,
+      );
+    }
+    notifyListeners();
+  }
+
+  // Aksi Menyimpan Absensi
+  void saveAbsensi(String kelasId, DateTime tanggal, Map<String, String> statusKehadiran) {
+    final record = AbsensiRecord(
+      id: DateTime.now().millisecondsSinceEpoch.toString(),
+      kelasId: kelasId,
+      tanggal: tanggal,
+      statusKehadiran: statusKehadiran,
+    );
+    _absensiList.add(record);
     notifyListeners();
   }
 }
