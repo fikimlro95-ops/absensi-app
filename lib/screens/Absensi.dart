@@ -528,14 +528,16 @@ class _AbsensiState extends State<Absensi> {
                   ? const Color(0xFF554DE7)
                   : const Color(0xFF888888);
               return GestureDetector(
-                onTap: () {
-                  if (_selectedIndex == i) return;
-                  if (i == 0) {
-                    Navigator.pushReplacementNamed(context, '/HomeSekolah');
-                  } else if (i == 1) {
-                    Navigator.pushReplacementNamed(context, '/Absensi');
-                  }
-                },
+                  onTap: () {
+                    if (_selectedIndex == i) return;
+                    if (i == 0) {
+                      Navigator.pushReplacementNamed(context, '/HomeSekolah');
+                    } else if (i == 1) {
+                      Navigator.pushReplacementNamed(context, '/Absensi');
+                    } else if (i == 2) {
+                      Navigator.pushReplacementNamed(context, '/Nilai');
+                    }
+                  },
                 behavior: HitTestBehavior.opaque,
                 child: Column(
                   mainAxisSize: MainAxisSize.min,

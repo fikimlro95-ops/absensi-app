@@ -66,6 +66,57 @@ class AbsensiRecord {
       );
 }
 
+// Model untuk Tugas dan Nilai
+class TugasRecord {
+  final String id;
+  final String kelasId;
+  final DateTime tanggal;
+  final String namaTugas;
+  final String deskripsi;
+  // Key: id siswa, Value: nilai (String, bebas diisi angka/huruf)
+  final Map<String, String> nilaiSiswa;
+
+  TugasRecord({
+    required this.id,
+    required this.kelasId,
+    required this.tanggal,
+    required this.namaTugas,
+    this.deskripsi = '',
+    Map<String, String>? nilaiSiswa,
+  }) : nilaiSiswa = nilaiSiswa ?? {};
+
+  TugasRecord copyWith({Map<String, String>? nilaiSiswa}) {
+    return TugasRecord(
+      id: id,
+      kelasId: kelasId,
+      tanggal: tanggal,
+      namaTugas: namaTugas,
+      deskripsi: deskripsi,
+      nilaiSiswa: nilaiSiswa ?? this.nilaiSiswa,
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'kelasId': kelasId,
+        'tanggal': tanggal.toIso8601String(),
+        'namaTugas': namaTugas,
+        'deskripsi': deskripsi,
+        'nilaiSiswa': nilaiSiswa,
+      };
+
+  factory TugasRecord.fromJson(Map<String, dynamic> json) => TugasRecord(
+        id: json['id'],
+        kelasId: json['kelasId'],
+        tanggal: DateTime.parse(json['tanggal']),
+        namaTugas: json['namaTugas'],
+        deskripsi: json['deskripsi'] ?? '',
+        nilaiSiswa: json['nilaiSiswa'] != null
+            ? Map<String, String>.from(json['nilaiSiswa'])
+            : {},
+      );
+}
+
 // Model untuk Sekolah
 class Sekolah {
   final String id;
@@ -135,12 +186,14 @@ class AppData extends ChangeNotifier {
   final List<Kelas> _kelasList = [];
   final List<Siswa> _siswaList = [];
   final List<AbsensiRecord> _absensiList = [];
+  final List<TugasRecord> _tugasList = [];
 
   // Getter
   List<Sekolah> get sekolahList => _sekolahList;
   List<Kelas> get kelasList => _kelasList;
   List<Siswa> get siswaList => _siswaList;
   List<AbsensiRecord> get absensiList => _absensiList;
+  List<TugasRecord> get tugasList => _tugasList;
 
   bool _isLoaded = false;
   bool get isLoaded => _isLoaded;
@@ -177,6 +230,13 @@ class AppData extends ChangeNotifier {
       _absensiList.addAll(decoded.map((e) => AbsensiRecord.fromJson(e)).toList());
     }
 
+    final tugasStr = prefs.getString('tugasList');
+    if (tugasStr != null) {
+      final List decoded = json.decode(tugasStr);
+      _tugasList.clear();
+      _tugasList.addAll(decoded.map((e) => TugasRecord.fromJson(e)).toList());
+    }
+
     _isLoaded = true;
     notifyListeners();
   }
@@ -187,6 +247,7 @@ class AppData extends ChangeNotifier {
     await prefs.setString('kelasList', json.encode(_kelasList.map((e) => e.toJson()).toList()));
     await prefs.setString('siswaList', json.encode(_siswaList.map((e) => e.toJson()).toList()));
     await prefs.setString('absensiList', json.encode(_absensiList.map((e) => e.toJson()).toList()));
+    await prefs.setString('tugasList', json.encode(_tugasList.map((e) => e.toJson()).toList()));
   }
 
   // Mengambil siswa berdasarkan kelas
@@ -328,5 +389,49 @@ class AppData extends ChangeNotifier {
     _absensiList.add(record);
     saveData();
     notifyListeners();
+  }
+
+  // Aksi Menambah Tugas
+  void addTugas(String kelasId, DateTime tanggal, String namaTugas, String deskripsi) {
+    final record = TugasRecord(
+      id: DateTime.now().millisecondsSinceEpoch.toString(),
+      kelasId: kelasId,
+      tanggal: tanggal,
+      namaTugas: namaTugas,
+      deskripsi: deskripsi,
+    );
+    _tugasList.add(record);
+    saveData();
+    notifyListeners();
+  }
+
+  // Aksi Menyimpan Nilai Siswa pada suatu Tugas
+  void saveNilaiSiswa(String tugasId, Map<String, String> nilaiSiswa) {
+    final index = _tugasList.indexWhere((t) => t.id == tugasId);
+    if (index != -1) {
+      _tugasList[index] = _tugasList[index].copyWith(nilaiSiswa: nilaiSiswa);
+      saveData();
+      notifyListeners();
+    }
+  }
+
+  // Aksi Menghapus Tugas
+  void deleteTugas(String id) {
+    _tugasList.removeWhere((t) => t.id == id);
+    saveData();
+    notifyListeners();
+  }
+
+  // Mendapatkan daftar tugas per kelas
+  List<TugasRecord> getTugasByKelas(String kelasId) {
+    return _tugasList.where((t) => t.kelasId == kelasId).toList()
+      ..sort((a, b) => b.tanggal.compareTo(a.tanggal));
+  }
+
+  // Mendapatkan semua tugas, diurutkan dari yang terbaru
+  List<TugasRecord> getSortedTugas() {
+    final sorted = List<TugasRecord>.from(_tugasList);
+    sorted.sort((a, b) => b.tanggal.compareTo(a.tanggal));
+    return sorted;
   }
 }

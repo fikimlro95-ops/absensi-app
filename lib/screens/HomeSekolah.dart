@@ -373,6 +373,8 @@ class HomeSekolahState extends State<HomeSekolah> {
                       Navigator.pushReplacementNamed(context, '/HomeSekolah');
                     } else if (i == 1) {
                       Navigator.pushReplacementNamed(context, '/Absensi');
+                    } else if (i == 2) {
+                      Navigator.pushReplacementNamed(context, '/Nilai');
                     }
                   },
                   behavior: HitTestBehavior.opaque,

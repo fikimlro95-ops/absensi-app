@@ -5,6 +5,8 @@ import 'screens/Absensi.dart';
 import 'screens/DetailKelas.dart';
 import 'screens/FormAbsensi.dart';
 import 'screens/DetailRiwayatAbsensi.dart';
+import 'screens/Nilai.dart';
+import 'screens/FormNilai.dart';
 import 'data/app_data.dart';
 import 'package:intl/date_symbol_data_local.dart';
 
@@ -66,6 +68,17 @@ class MyApp extends StatelessWidget {
           final record = settings.arguments as AbsensiRecord;
           return MaterialPageRoute(
             builder: (_) => DetailRiwayatAbsensi(record: record),
+          );
+        } else if (settings.name == '/Nilai') {
+          return PageRouteBuilder(
+            pageBuilder: (_, __, ___) => const Nilai(),
+            transitionDuration: Duration.zero,
+            reverseTransitionDuration: Duration.zero,
+          );
+        } else if (settings.name == '/FormNilai') {
+          final tugas = settings.arguments as TugasRecord;
+          return MaterialPageRoute(
+            builder: (_) => FormNilai(tugas: tugas),
           );
         }
         return MaterialPageRoute(builder: (_) => const HomeSekolah());
