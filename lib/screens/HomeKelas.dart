@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import '../data/app_data.dart';
+import '../data/export_helper.dart';
 
 class HomeKelas extends StatefulWidget {
   const HomeKelas({super.key});
@@ -347,7 +348,12 @@ class HomeKelasState extends State<HomeKelas> {
                       child: _buildActionButton(
                         label: 'Export Absensi',
                         icon: Icons.file_download_outlined,
-                        onTap: () => print('Export Absensi: ${data['kelas']}'),
+                        onTap: () => _showExportModal(
+                          context: context,
+                          kelasId: data['id'],
+                          namaKelas: data['kelas'],
+                          type: 'absensi',
+                        ),
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -355,7 +361,12 @@ class HomeKelasState extends State<HomeKelas> {
                       child: _buildActionButton(
                         label: 'Export Nilai',
                         icon: Icons.grade_outlined,
-                        onTap: () => print('Export Nilai: ${data['kelas']}'),
+                        onTap: () => _showExportModal(
+                          context: context,
+                          kelasId: data['id'],
+                          namaKelas: data['kelas'],
+                          type: 'nilai',
+                        ),
                       ),
                     ),
                   ],
@@ -486,7 +497,246 @@ class HomeKelasState extends State<HomeKelas> {
       ),
     );
   }
-}
+
+  // ─── MODAL EXPORT ──────────────────────────────────────────────────────────
+  void _showExportModal({
+    required BuildContext context,
+    required String kelasId,
+    required String namaKelas,
+    required String type,
+  }) {
+    final periods = ExportPeriod.values;
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        return Container(
+          decoration: const BoxDecoration(
+            color: Color(0xFF111111),
+            borderRadius: BorderRadius.only(
+              topLeft: Radius.circular(28),
+              topRight: Radius.circular(28),
+            ),
+            border: Border(
+              top: BorderSide(color: Color(0xFF1C3393), width: 2),
+            ),
+          ),
+          padding: const EdgeInsets.fromLTRB(24, 24, 24, 32),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFF08102D), Color(0xFF1C3393)],
+                      ),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Icon(
+                      type == 'absensi'
+                          ? Icons.file_download_outlined
+                          : Icons.grade_outlined,
+                      color: Colors.white,
+                      size: 20,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Export ${type == 'absensi' ? 'Absensi' : 'Nilai'}',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      Text(
+                        namaKelas,
+                        style: TextStyle(
+                          color: Colors.white.withOpacity(0.55),
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20),
+              Text(
+                'Pilih rentang waktu data yang akan diekspor:',
+                style: TextStyle(
+                    color: Colors.white.withOpacity(0.65), fontSize: 13),
+              ),
+              const SizedBox(height: 16),
+              ...periods.map((period) => _buildPeriodOption(
+                    ctx: ctx,
+                    period: period,
+                    kelasId: kelasId,
+                    type: type,
+                  )),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildPeriodOption({
+    required BuildContext ctx,
+    required ExportPeriod period,
+    required String kelasId,
+    required String type,
+  }) {
+    return GestureDetector(
+      onTap: () async {
+        Navigator.pop(ctx);
+        final scaffold = ScaffoldMessenger.of(context);
+        scaffold.showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(
+                      strokeWidth: 2, color: Colors.white),
+                ),
+                const SizedBox(width: 12),
+                Text('Menyiapkan export ${period.label}...'),
+              ],
+            ),
+            backgroundColor: const Color(0xFF1C3393),
+            behavior: SnackBarBehavior.floating,
+            shape: const RoundedRectangleBorder(
+              borderRadius: BorderRadius.all(Radius.circular(12)),
+            ),
+            duration: const Duration(seconds: 4),
+          ),
+        );
+        try {
+          if (type == 'absensi') {
+            await ExportHelper.exportAbsensi(kelasId: kelasId, period: period);
+          } else {
+            await ExportHelper.exportNilai(kelasId: kelasId, period: period);
+          }
+          scaffold.hideCurrentSnackBar();
+          scaffold.showSnackBar(
+            SnackBar(
+              content: Text('Export ${period.label} berhasil! 🎉'),
+              backgroundColor: Colors.green.shade700,
+              behavior: SnackBarBehavior.floating,
+              shape: const RoundedRectangleBorder(
+                borderRadius: BorderRadius.all(Radius.circular(12)),
+              ),
+            ),
+          );
+        } catch (e) {
+          scaffold.hideCurrentSnackBar();
+          scaffold.showSnackBar(
+            SnackBar(
+              content: Text('Gagal export: $e'),
+              backgroundColor: Colors.redAccent,
+              behavior: SnackBarBehavior.floating,
+              shape: const RoundedRectangleBorder(
+                borderRadius: BorderRadius.all(Radius.circular(12)),
+              ),
+            ),
+          );
+        }
+      },
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 10),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        decoration: BoxDecoration(
+          color: const Color(0xFF0A0A0A),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: const Color(0xFF3D5AFE).withOpacity(0.3),
+          ),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 38,
+              height: 38,
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [Color(0xFF08102D), Color(0xFF1C3393)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Center(
+                child: Icon(
+                  _periodIcon(period),
+                  color: Colors.white,
+                  size: 18,
+                ),
+              ),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    period.label,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  Text(
+                    _periodDesc(period),
+                    style: TextStyle(
+                      color: Colors.white.withOpacity(0.45),
+                      fontSize: 11,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Icon(
+              Icons.chevron_right,
+              color: Colors.white.withOpacity(0.4),
+              size: 20,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  IconData _periodIcon(ExportPeriod p) {
+    switch (p) {
+      case ExportPeriod.minggu1:
+        return Icons.view_week_outlined;
+      case ExportPeriod.bulan1:
+        return Icons.calendar_month_outlined;
+      case ExportPeriod.bulan6:
+        return Icons.date_range_outlined;
+    }
+  }
+
+  String _periodDesc(ExportPeriod p) {
+    switch (p) {
+      case ExportPeriod.minggu1:
+        return 'Data 7 hari terakhir';
+      case ExportPeriod.bulan1:
+        return 'Data 30 hari terakhir';
+      case ExportPeriod.bulan6:
+        return 'Data 180 hari terakhir';
+    }
+  }
+
 
   // ─── MODAL TAMBAH KELAS ──────────────────────────────────────────────────
   void _showAddKelasModal(BuildContext context) {
@@ -688,6 +938,8 @@ class HomeKelasState extends State<HomeKelas> {
       },
     );
   }
+
+}
 
 // ─── HELPER ─────────────────────────────────────────────────────────────────
 class _NavItem {
