@@ -1,5 +1,7 @@
 # Aplikasi Absensi & Penilaian Siswa
 
+[![Download APK](https://img.shields.io/badge/Download-APK-success?style=for-the-badge&logo=android)](https://drive.google.com/file/d/1QbWtTK1C1sFjZHVjy0nEMC7vB9Y3eNxs/view?usp=drive_link)
+
 Aplikasi manajemen kelas berbasis Flutter yang memudahkan pengajar untuk mengelola absensi harian, nilai tugas, hingga rekapitulasi data siswa dengan fitur ekspor otomatis ke Excel. Aplikasi dirancang sepenuhnya berjalan secara offline sehingga cepat dan tidak membutuhkan koneksi internet.
 
 ##  Fitur Utama
