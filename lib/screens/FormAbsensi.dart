@@ -28,9 +28,9 @@ class _FormAbsensiState extends State<FormAbsensi> {
     _sekolah = AppData().sekolahList.firstWhere((s) => s.id == _kelas.sekolahId);
     _siswaList = AppData().getSiswaByKelas(widget.kelasId);
     
-    // Set default ke Hadir untuk semua siswa
+    // Set default sesuai setelan di Profil (Hadir atau Alfa)
     for (var siswa in _siswaList) {
-      _absensiState[siswa.id] = 'Hadir';
+      _absensiState[siswa.id] = AppData().defaultAbsensiStatus;
     }
   }
 

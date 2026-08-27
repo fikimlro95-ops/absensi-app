@@ -7,6 +7,7 @@ import 'screens/FormAbsensi.dart';
 import 'screens/DetailRiwayatAbsensi.dart';
 import 'screens/Nilai.dart';
 import 'screens/FormNilai.dart';
+import 'screens/Profil.dart';
 import 'data/app_data.dart';
 import 'package:intl/date_symbol_data_local.dart';
 
@@ -79,6 +80,12 @@ class MyApp extends StatelessWidget {
           final tugas = settings.arguments as TugasRecord;
           return MaterialPageRoute(
             builder: (_) => FormNilai(tugas: tugas),
+          );
+        } else if (settings.name == '/Profil') {
+          return PageRouteBuilder(
+            pageBuilder: (_, __, ___) => const Profil(),
+            transitionDuration: Duration.zero,
+            reverseTransitionDuration: Duration.zero,
           );
         }
         return MaterialPageRoute(builder: (_) => const HomeSekolah());

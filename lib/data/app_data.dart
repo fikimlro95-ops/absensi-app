@@ -197,6 +197,15 @@ class AppData extends ChangeNotifier {
   bool _isLoaded = false;
   bool get isLoaded => _isLoaded;
 
+  // Setelan default absensi: 'Hadir' atau 'Alfa'
+  String _defaultAbsensiStatus = 'Hadir';
+  String get defaultAbsensiStatus => _defaultAbsensiStatus;
+  void setDefaultAbsensiStatus(String value) {
+    _defaultAbsensiStatus = value;
+    saveData();
+    notifyListeners();
+  }
+
   // ─── LOCAL STORAGE LOGIC ───
   Future<void> loadData() async {
     final prefs = await SharedPreferences.getInstance();
@@ -237,6 +246,10 @@ class AppData extends ChangeNotifier {
     }
 
     _isLoaded = true;
+
+    // Load setting default absensi
+    _defaultAbsensiStatus = prefs.getString('defaultAbsensiStatus') ?? 'Hadir';
+
     notifyListeners();
   }
 
@@ -247,6 +260,7 @@ class AppData extends ChangeNotifier {
     await prefs.setString('siswaList', json.encode(_siswaList.map((e) => e.toJson()).toList()));
     await prefs.setString('absensiList', json.encode(_absensiList.map((e) => e.toJson()).toList()));
     await prefs.setString('tugasList', json.encode(_tugasList.map((e) => e.toJson()).toList()));
+    await prefs.setString('defaultAbsensiStatus', _defaultAbsensiStatus);
   }
 
   // Mengambil siswa berdasarkan kelas

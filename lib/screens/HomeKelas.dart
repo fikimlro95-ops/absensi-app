@@ -464,6 +464,8 @@ class HomeKelasState extends State<HomeKelas> {
                       Navigator.pushReplacementNamed(context, '/Absensi');
                     } else if (i == 2) {
                       Navigator.pushReplacementNamed(context, '/Nilai');
+                    } else if (i == 3) {
+                      Navigator.pushReplacementNamed(context, '/Profil');
                     }
                   },
                   behavior: HitTestBehavior.opaque,
