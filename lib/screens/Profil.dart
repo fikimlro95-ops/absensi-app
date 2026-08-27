@@ -45,10 +45,7 @@ class ProfilState extends State<Profil> {
                             icon: Icons.checklist_rtl_outlined,
                             title: 'Setelan Awal Absensi',
                             subtitle: current,
-                            onTap: () {
-                              final next = current == 'Hadir' ? 'Alfa' : 'Hadir';
-                              AppData().setDefaultAbsensiStatus(next);
-                            },
+                            onTap: () => _showAbsensiSettingModal(current),
                           );
                         },
                       ),
@@ -90,6 +87,136 @@ class ProfilState extends State<Profil> {
 
       // ── BOTTOM NAV ──────────────────────────────────────────────
       bottomNavigationBar: _buildBottomNav(),
+    );
+  }
+  // ── MODAL PILIH DEFAULT ABSENSI ─────────────────────────────────────────
+  void _showAbsensiSettingModal(String current) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        return Container(
+          decoration: const BoxDecoration(
+            color: Color(0xFF111111),
+            borderRadius: BorderRadius.only(
+              topLeft: Radius.circular(28),
+              topRight: Radius.circular(28),
+            ),
+            border: Border(
+              top: BorderSide(color: Color(0xFF1C3393), width: 2),
+            ),
+          ),
+          padding: const EdgeInsets.fromLTRB(24, 24, 24, 32),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Setelan Awal Absensi',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                'Pilih status default saat membuat absensi baru:',
+                style: TextStyle(
+                  color: Colors.white.withValues(alpha: 0.55),
+                  fontSize: 13,
+                ),
+              ),
+              const SizedBox(height: 20),
+              _buildOptionTile(
+                ctx: ctx,
+                label: 'Hadir',
+                desc: 'Semua siswa otomatis Hadir',
+                icon: Icons.check_circle_outline,
+                color: Colors.green,
+                isSelected: current == 'Hadir',
+                onTap: () {
+                  AppData().setDefaultAbsensiStatus('Hadir');
+                  Navigator.pop(ctx);
+                },
+              ),
+              const SizedBox(height: 10),
+              _buildOptionTile(
+                ctx: ctx,
+                label: 'Alfa',
+                desc: 'Semua siswa otomatis Alfa',
+                icon: Icons.cancel_outlined,
+                color: Colors.redAccent,
+                isSelected: current == 'Alfa',
+                onTap: () {
+                  AppData().setDefaultAbsensiStatus('Alfa');
+                  Navigator.pop(ctx);
+                },
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildOptionTile({
+    required BuildContext ctx,
+    required String label,
+    required String desc,
+    required IconData icon,
+    required Color color,
+    required bool isSelected,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? color.withValues(alpha: 0.1)
+              : const Color(0xFF0A0A0A),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: isSelected
+                ? color.withValues(alpha: 0.6)
+                : const Color(0xFF3D5AFE).withValues(alpha: 0.2),
+            width: isSelected ? 1.5 : 1,
+          ),
+        ),
+        child: Row(
+          children: [
+            Icon(icon, color: color, size: 28),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    label,
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight:
+                          isSelected ? FontWeight.bold : FontWeight.w500,
+                    ),
+                  ),
+                  Text(
+                    desc,
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.45),
+                      fontSize: 11,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            if (isSelected)
+              Icon(Icons.check, color: color, size: 22),
+          ],
+        ),
+      ),
     );
   }
 
